@@ -43,6 +43,7 @@ class Program
 
                         if (modInfo != null)
                         {
+                            modInfo["uniquekeyformodpath"] = Path.GetFullPath(mod).Replace('\\', '/');
                             modInfoList.Add(modInfo);
                             Console.WriteLine(modInfo["name"]);
                         }
@@ -103,13 +104,28 @@ class Program
                         {
                             if (response.IsSuccessStatusCode)
                             {
-                                if (!Directory.Exists(config.DownloadPath))
+                                if (!Directory.Exists(config.ModPath))
                                 {
-                                    Console.WriteLine("Output folder doesn't exist. Exiting");
+                                    Console.WriteLine("Mod folder doesn't exist. Exiting");
                                     return;
                                 }
-                                string fileName = $"{mod["name"]} - {release.GetProperty("modversion").ToString()}".Replace(":", ";").Replace("/", "-").Replace("\\", "-") + ".zip";
-                                string outputPath = Path.Combine(config.DownloadPath, Path.GetFileName(fileName));
+                                if (mod["uniquekeyformodpath"].ToString() != null)
+                                {
+                                    string oldPath = Path.Combine(config.ModPath, "Old");
+                                    if (!Directory.Exists(oldPath))
+                                    {
+                                        Directory.CreateDirectory(oldPath);
+                                    }
+                                    string oldFileName = Path.GetFileName(mod["uniquekeyformodpath"]?.ToString() ?? string.Empty);
+                                    string oldOutputPath = Path.Combine(oldPath, oldFileName);
+                                    if (File.Exists(oldOutputPath))
+                                    {
+                                        File.Delete(oldOutputPath);
+                                    }
+                                    File.Move(mod["uniquekeyformodpath"]?.ToString() ?? string.Empty, oldOutputPath);
+                                }
+                                string fileName = $"{mod["name"]} - {release.GetProperty("modversion")}".Replace(":", ";").Replace("/", "-").Replace("\\", "-") + ".zip";
+                                string outputPath = Path.Combine(config.ModPath, Path.GetFileName(fileName));
                                 await File.WriteAllBytesAsync(outputPath, await response.Content.ReadAsByteArrayAsync());
                             }
                         }
@@ -121,6 +137,7 @@ class Program
                 }
             }
         }
+        Console.WriteLine($"Checked {CheckedMods} mods. Downloaded {DownloadedMods} mods");
     }
 
     static JsonElement CompareVersions(JsonElement releases, string GameVersion)
@@ -207,12 +224,11 @@ class Program
             Console.WriteLine("Please choose an option:");
             Console.WriteLine("1. Check for updates");
             Console.WriteLine($"2. Set Mods Directory (Current: {config.ModPath})");
-            Console.WriteLine($"3. Set Download Directory (Current: {config.DownloadPath})");
-            Console.WriteLine($"4. Set Game Version (Current: {config.GameVersion})");
-            Console.WriteLine($"5. Set if to always update mods? (Current: {config.AlwaysUpdate})");
-            Console.WriteLine($"6. Set if can downgrade mods? (Current: {config.CanDowngrade})");
-            Console.WriteLine($"7. Always download anyway? (Current: {config.AlwaysDownload})");
-            Console.WriteLine($"8. Missing release decision? (Current: {config.MissingVersion})");
+            Console.WriteLine($"3. Set Game Version (Current: {config.GameVersion})");
+            Console.WriteLine($"4. Set if to always update mods? (Current: {config.AlwaysUpdate})");
+            Console.WriteLine($"5. Set if can downgrade mods? (Current: {config.CanDowngrade})");
+            Console.WriteLine($"6. Always download anyway? (Current: {config.AlwaysDownload})");
+            Console.WriteLine($"7. Missing release decision? (Current: {config.MissingVersion})");
             Console.WriteLine($"0. Exit");
             Separator();
 
@@ -233,11 +249,6 @@ class Program
                     Separator();
                     Console.WriteLine("\nChecking for updates...\n");
                     // Check for updates asynchronously
-                    if (config.DownloadPath == null)
-                    {
-                        Console.WriteLine("Output path is not set.");
-                        break;
-                    }
                     if (config.GameVersion == null)
                     {
                         Console.WriteLine("Game version is not set.");
@@ -263,20 +274,6 @@ class Program
                     }
                     break;
                 case 3:
-                    Console.WriteLine("Enter the new download directory:");
-                    string newDownloadPath = Console.ReadLine() ?? string.Empty;
-                    if (Directory.Exists(newDownloadPath))
-                    {
-                        config.DownloadPath = newDownloadPath;
-                        config.SaveConfig();
-                        Console.WriteLine($"Mods Directory updated to: {config.DownloadPath}");
-                    }
-                    else
-                    {
-                        Console.WriteLine("Directory doesn't exist, no changes made.");
-                    }
-                    break;
-                case 4:
                     Console.WriteLine("Current game version: " + config.GameVersion);
                     Console.WriteLine("Note that this doesn't check if the version exists.");
                     Console.WriteLine("This will be used for checking for which game version to download your mods");
@@ -293,7 +290,7 @@ class Program
                         Console.WriteLine($"Game version updated to: {config.GameVersion}");
                     }
                     break;
-                case 5:
+                case 4:
                     Console.WriteLine("Current always update setting: " + config.AlwaysUpdate);
                     Console.WriteLine("1) Always update mods");
                     Console.WriteLine("2) Update only if there's an update specifically for your version");
@@ -319,7 +316,7 @@ class Program
                             break;
                     }
                     break;
-                case 6:
+                case 5:
                     Console.WriteLine("Current can downgrade setting: " + config.CanDowngrade);
                     Console.WriteLine("1) Allow downgrading mods");
                     Console.WriteLine("2) Do not allow downgrading mods");
@@ -345,7 +342,7 @@ class Program
                             break;
                     }
                     break;
-                case 7:
+                case 6:
                     Console.WriteLine("Current can downgrade setting: " + config.AlwaysDownload);
                     Console.WriteLine("1) Always download anyway");
                     Console.WriteLine("2) Do not download always");
@@ -371,7 +368,7 @@ class Program
                             break;
                     }
                     break;
-                case 8:
+                case 7:
                     Console.WriteLine("Current can missing release setting: " + config.MissingVersion);
                     Console.WriteLine("Dictates what happens if the mod releases don't feature our version.");
                     Console.WriteLine("1) Use latest release");
@@ -521,7 +518,6 @@ public class Config
     private string configPath;
     public string? ModPath { get; set; }
     public string? GameVersion { get; set; }
-    public string? DownloadPath { get; set; }
     public bool? AlwaysUpdate { get; set; }
     public bool? CanDowngrade { get; set; }
     public bool? AlwaysDownload { get; set; }
@@ -547,10 +543,6 @@ public class Config
                 else if (line.StartsWith("GameVersion"))
                 {
                     GameVersion = line.Split('=')[1].Trim();
-                }
-                else if (line.StartsWith("DownloadPath"))
-                {
-                    DownloadPath = line.Split('=')[1].Trim();
                 }
                 else if (line.StartsWith("AlwaysUpdate"))
                 {
@@ -584,7 +576,6 @@ public class Config
             // Handle config creation or re-ask for values as needed
             ModPath = AskDirectory("Please enter the path to your mods folder: ", "Please enter a valid path.");
             GameVersion = "0.0.0";
-            DownloadPath = Path.Combine(Directory.GetCurrentDirectory(), "Mods");
             AlwaysUpdate = true;
             CanDowngrade = false;
             AlwaysDownload = false;
@@ -598,7 +589,6 @@ public class Config
         File.WriteAllText(configPath,
             $"ModPath = {ModPath}\n" +
             $"GameVersion = {GameVersion}\n" +
-            $"DownloadPath = {DownloadPath}\n" +
             $"AlwaysUpdate = {AlwaysUpdate}\n" +
             $"CanDowngrade = {CanDowngrade}\n" +
             $"AlwaysDownload = {AlwaysDownload}\n" +
