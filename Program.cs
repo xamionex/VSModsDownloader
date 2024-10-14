@@ -8,6 +8,19 @@ class Program
     public static Config config = new();
     static string homeUrl = "https://mods.vintagestory.at";
     static string modApi = "http://mods.vintagestory.at/api/mod";
+    static string oldPathName = $"Old-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}";
+
+    static void ClearConsole()
+    {
+        try
+        {
+            Console.Clear();
+        }
+        catch (IOException)
+        {
+            // vsc terminal scary debug fact
+        }
+    }
 
     static void Separator()
     {
@@ -45,7 +58,8 @@ class Program
                         {
                             modInfo["uniquekeyformodpath"] = Path.GetFullPath(mod).Replace('\\', '/');
                             modInfoList.Add(modInfo);
-                            Console.WriteLine(modInfo["name"]);
+                            // dont log since we log for updates anyway
+                            // Console.WriteLine(modInfo["name"]);
                         }
                     }
                 }
@@ -58,6 +72,7 @@ class Program
 
     static async Task CheckForUpdatesAsync(List<Dictionary<string, object>> modInfoList)
     {
+        Separator();
         int CheckedMods = 0;
         int DownloadedMods = 0;
         using (HttpClient client = new HttpClient())
@@ -65,7 +80,6 @@ class Program
             foreach (var mod in modInfoList)
             {
                 CheckedMods++;
-                Separator();
                 string apiReq = modApi + "/" + mod["modid"];
                 HttpResponseMessage modRes = await client.GetAsync(apiReq);
                 if (modRes.IsSuccessStatusCode)
@@ -111,7 +125,7 @@ class Program
                                 }
                                 if (mod["uniquekeyformodpath"].ToString() != null)
                                 {
-                                    string oldPath = Path.Combine(config.ModPath, "Old");
+                                    string oldPath = Path.Combine(config.ModPath, oldPathName);
                                     if (!Directory.Exists(oldPath))
                                     {
                                         Directory.CreateDirectory(oldPath);
@@ -135,6 +149,7 @@ class Program
                         Console.WriteLine($"{mod["name"]} is on latest ({mod["version"]})!");
                     }
                 }
+                Separator();
             }
         }
         Console.WriteLine($"Checked {CheckedMods} mods. Downloaded {DownloadedMods} mods");
@@ -167,7 +182,7 @@ class Program
 
                 if (comparisonResult == 0) // if tagVersion is equal to GameVersion
                 {
-                    Console.WriteLine($"Equal Release found: {tag.GetString()}");
+                    Console.WriteLine($"Exact Release found: {tag.GetString()}");
                     return release;
                 }
 
@@ -219,6 +234,8 @@ class Program
     {
         while (true)
         {
+            oldPathName = $"Old-{DateTime.Now:yyyy-MM-dd_HH-mm-ss}";
+            ClearConsole();
             Separator();
             Console.WriteLine("Welcome to VSMD!");
             Console.WriteLine("Please choose an option:");
@@ -236,6 +253,7 @@ class Program
             switch (option)
             {
                 case 1:
+                    ClearConsole();
                     // Get mod list
                     if (config.ModPath == null)
                     {
@@ -243,7 +261,8 @@ class Program
                         break;
                     }
                     List<string> modList = GetModList(config.ModPath);
-                    Console.WriteLine("Mods in your folder: \n");
+                    // dont log since we log in updates anyway
+                    // Console.WriteLine("Mods in your folder: \n");
                     // Extract mod info from ZIPs
                     List<Dictionary<string, object>> modInfoList = ExtractModInfoFromZips(modList);
                     Separator();
@@ -260,6 +279,7 @@ class Program
                     Console.ReadLine();
                     break;
                 case 2:
+                    ClearConsole();
                     Console.WriteLine("Enter the new mods directory:");
                     string newModPath = Console.ReadLine() ?? string.Empty;
                     if (Directory.Exists(newModPath))
@@ -274,6 +294,7 @@ class Program
                     }
                     break;
                 case 3:
+                    ClearConsole();
                     Console.WriteLine("Current game version: " + config.GameVersion);
                     Console.WriteLine("Note that this doesn't check if the version exists.");
                     Console.WriteLine("This will be used for checking for which game version to download your mods");
@@ -287,10 +308,12 @@ class Program
                     else
                     {
                         config.GameVersion = newGameVersion;
+                        config.SaveConfig();
                         Console.WriteLine($"Game version updated to: {config.GameVersion}");
                     }
                     break;
                 case 4:
+                    ClearConsole();
                     Console.WriteLine("Current always update setting: " + config.AlwaysUpdate);
                     Console.WriteLine("1) Always update mods");
                     Console.WriteLine("2) Update only if there's an update specifically for your version");
@@ -317,6 +340,7 @@ class Program
                     }
                     break;
                 case 5:
+                    ClearConsole();
                     Console.WriteLine("Current can downgrade setting: " + config.CanDowngrade);
                     Console.WriteLine("1) Allow downgrading mods");
                     Console.WriteLine("2) Do not allow downgrading mods");
@@ -343,6 +367,7 @@ class Program
                     }
                     break;
                 case 6:
+                    ClearConsole();
                     Console.WriteLine("Current can downgrade setting: " + config.AlwaysDownload);
                     Console.WriteLine("1) Always download anyway");
                     Console.WriteLine("2) Do not download always");
@@ -369,6 +394,7 @@ class Program
                     }
                     break;
                 case 7:
+                    ClearConsole();
                     Console.WriteLine("Current can missing release setting: " + config.MissingVersion);
                     Console.WriteLine("Dictates what happens if the mod releases don't feature our version.");
                     Console.WriteLine("1) Use latest release");
@@ -396,6 +422,7 @@ class Program
                     }
                     break;
                 case 0:
+                    ClearConsole();
                     Console.WriteLine("Exiting");
                     Environment.Exit(0);
                     break;
