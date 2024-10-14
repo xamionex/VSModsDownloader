@@ -1,8 +1,7 @@
 ﻿using System.IO.Compression;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
-using System.Xml.Linq;
 
 class Program
 {
@@ -12,7 +11,7 @@ class Program
 
     static void Separator()
     {
-        Console.WriteLine(new string('⎯', 50));
+        Console.WriteLine(new string('█', 50));
     }
 
     static List<string> GetModList(string modPath)
@@ -58,10 +57,13 @@ class Program
 
     static async Task CheckForUpdatesAsync(List<Dictionary<string, object>> modInfoList)
     {
+        int CheckedMods = 0;
+        int DownloadedMods = 0;
         using (HttpClient client = new HttpClient())
         {
             foreach (var mod in modInfoList)
             {
+                CheckedMods++;
                 Separator();
                 string apiReq = modApi + "/" + mod["modid"];
                 HttpResponseMessage modRes = await client.GetAsync(apiReq);
@@ -86,6 +88,7 @@ class Program
 
                     if (modComparison > 0 || (config.CanDowngrade ?? false) && (modComparison < 0) || (config.AlwaysDownload ?? false))
                     {
+                        DownloadedMods++;
                         if (config.AlwaysDownload ?? false)
                             Console.WriteLine($"Updating {mod["name"]}, always download is enabled");
                         else if (modComparison > 0)
@@ -105,7 +108,7 @@ class Program
                                     Console.WriteLine("Output folder doesn't exist. Exiting");
                                     return;
                                 }
-                                string fileName = $"{mod["name"]}".Replace(":", ";").Replace("/", "-").Replace("\\", "-") + ".zip";
+                                string fileName = $"{mod["name"]} - {release.GetProperty("modversion").ToString()}".Replace(":", ";").Replace("/", "-").Replace("\\", "-") + ".zip";
                                 string outputPath = Path.Combine(config.DownloadPath, Path.GetFileName(fileName));
                                 await File.WriteAllBytesAsync(outputPath, await response.Content.ReadAsByteArrayAsync());
                             }
@@ -141,16 +144,21 @@ class Program
 
                 if (comparisonResult > 0 && (config.AlwaysUpdate ?? true)) // If tagVersion is greater than GameVersion
                 {
-                    Console.WriteLine($"Version found: {tag.GetString()}");
+                    Console.WriteLine($"Newer Release found: {tag.GetString()}");
                     return release;
                 }
 
                 if (comparisonResult == 0) // if tagVersion is equal to GameVersion
                 {
-                    Console.WriteLine($"Version found: {tag.GetString()}");
+                    Console.WriteLine($"Equal Release found: {tag.GetString()}");
                     return release;
                 }
 
+                if ((comparisonResult < 0) && (config.MissingVersion == "Use One Version Below")) // if tagVersion is less than GameVersion
+                {
+                    Console.WriteLine($"Older Release found: {tag.GetString()}");
+                    return release;
+                }
             }
         }
         Console.WriteLine($"No version found. Using Latest: {releases[0].GetProperty("tags")[0].GetString()}");
@@ -204,6 +212,7 @@ class Program
             Console.WriteLine($"5. Set if to always update mods? (Current: {config.AlwaysUpdate})");
             Console.WriteLine($"6. Set if can downgrade mods? (Current: {config.CanDowngrade})");
             Console.WriteLine($"7. Always download anyway? (Current: {config.AlwaysDownload})");
+            Console.WriteLine($"8. Missing release decision? (Current: {config.MissingVersion})");
             Console.WriteLine($"0. Exit");
             Separator();
 
@@ -362,6 +371,33 @@ class Program
                             break;
                     }
                     break;
+                case 8:
+                    Console.WriteLine("Current can missing release setting: " + config.MissingVersion);
+                    Console.WriteLine("Dictates what happens if the mod releases don't feature our version.");
+                    Console.WriteLine("1) Use latest release");
+                    Console.WriteLine("2) Use one release below current");
+                    Console.WriteLine("3) Cancel:");
+                    option = GetMainInput();
+                    switch (option)
+                    {
+                        case 1:
+                            config.MissingVersion = "Use Latest";
+                            config.SaveConfig();
+                            Console.WriteLine($"Can downgrade setting updated to: {config.MissingVersion}");
+                            break;
+                        case 2:
+                            config.MissingVersion = "Use One Version Below";
+                            config.SaveConfig();
+                            Console.WriteLine($"Can downgrade setting updated to: {config.MissingVersion}");
+                            break;
+                        case 3:
+                            Console.WriteLine("Update cancelled.");
+                            break;
+                        default:
+                            Console.WriteLine("Invalid option.");
+                            break;
+                    }
+                    break;
                 case 0:
                     Console.WriteLine("Exiting");
                     Environment.Exit(0);
@@ -489,6 +525,7 @@ public class Config
     public bool? AlwaysUpdate { get; set; }
     public bool? CanDowngrade { get; set; }
     public bool? AlwaysDownload { get; set; }
+    public string? MissingVersion { get; set; }
 
     public Config()
     {
@@ -536,6 +573,10 @@ public class Config
                     else
                         AlwaysDownload = false;
                 }
+                else if (line.StartsWith("MissingVersion"))
+                {
+                    MissingVersion = line.Split('=')[1].Trim();
+                }
             }
         }
         else
@@ -547,6 +588,7 @@ public class Config
             AlwaysUpdate = true;
             CanDowngrade = false;
             AlwaysDownload = false;
+            MissingVersion = "Use Latest";
             SaveConfig();
         }
     }
@@ -559,7 +601,8 @@ public class Config
             $"DownloadPath = {DownloadPath}\n" +
             $"AlwaysUpdate = {AlwaysUpdate}\n" +
             $"CanDowngrade = {CanDowngrade}\n" +
-            $"AlwaysDownload = {AlwaysDownload}\n"
+            $"AlwaysDownload = {AlwaysDownload}\n" +
+            $"MissingVersion = {MissingVersion}\n"
             );
     }
 
