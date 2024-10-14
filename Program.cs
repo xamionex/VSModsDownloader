@@ -84,16 +84,14 @@ class Program
 
                     int modComparison = CompareVersionParts(release.GetProperty("modversion").ToString(), mod["version"].ToString() ?? "0.0.0");
 
-                    if (modComparison > 0 || (config.CanDowngrade ?? false) && (modComparison < 0))
+                    if (modComparison > 0 || (config.CanDowngrade ?? false) && (modComparison < 0) || (config.AlwaysDownload ?? false))
                     {
-                        if (modComparison > 0)
-                        {
-                            Console.WriteLine($"{mod["name"]} has a newer version.");
-                        }
+                        if (config.AlwaysDownload ?? false)
+                            Console.WriteLine($"Updating {mod["name"]}, always download is enabled");
+                        else if (modComparison > 0)
+                            Console.WriteLine($"Updating {mod["name"]}, has a newer version.");
                         else if (modComparison < 0)
-                        {
-                            Console.WriteLine($"{mod["name"]} has an older version and downgrading is allowed");
-                        }
+                            Console.WriteLine($"Updating {mod["name"]}, has an older version and downgrading is allowed");
                         int fileId = release.GetProperty("fileid").GetInt32();
                         string downlink = homeUrl + "/download?fileid=" + fileId;
                         //Console.WriteLine("Downloading from: " + downlink);
@@ -205,6 +203,7 @@ class Program
             Console.WriteLine($"4. Set Game Version (Current: {config.GameVersion})");
             Console.WriteLine($"5. Set if to always update mods? (Current: {config.AlwaysUpdate})");
             Console.WriteLine($"6. Set if can downgrade mods? (Current: {config.CanDowngrade})");
+            Console.WriteLine($"7. Always download anyway? (Current: {config.AlwaysDownload})");
             Console.WriteLine($"0. Exit");
             Separator();
 
@@ -328,6 +327,32 @@ class Program
                             config.CanDowngrade = false;
                             config.SaveConfig();
                             Console.WriteLine($"Can downgrade setting updated to: {config.CanDowngrade}");
+                            break;
+                        case 3:
+                            Console.WriteLine("Update cancelled.");
+                            break;
+                        default:
+                            Console.WriteLine("Invalid option.");
+                            break;
+                    }
+                    break;
+                case 7:
+                    Console.WriteLine("Current can downgrade setting: " + config.AlwaysDownload);
+                    Console.WriteLine("1) Always download anyway");
+                    Console.WriteLine("2) Do not download always");
+                    Console.WriteLine("3) Cancel:");
+                    option = GetMainInput();
+                    switch (option)
+                    {
+                        case 1:
+                            config.AlwaysDownload = true;
+                            config.SaveConfig();
+                            Console.WriteLine($"Can downgrade setting updated to: {config.AlwaysDownload}");
+                            break;
+                        case 2:
+                            config.AlwaysDownload = false;
+                            config.SaveConfig();
+                            Console.WriteLine($"Can downgrade setting updated to: {config.AlwaysDownload}");
                             break;
                         case 3:
                             Console.WriteLine("Update cancelled.");
@@ -463,6 +488,7 @@ public class Config
     public string? DownloadPath { get; set; }
     public bool? AlwaysUpdate { get; set; }
     public bool? CanDowngrade { get; set; }
+    public bool? AlwaysDownload { get; set; }
 
     public Config()
     {
@@ -477,31 +503,38 @@ public class Config
             string[] lines = File.ReadAllLines(configPath);
             foreach (var line in lines)
             {
-                if (line.StartsWith("modpath"))
+                if (line.StartsWith("ModPath"))
                 {
                     ModPath = line.Split('=')[1].Trim();
                 }
-                else if (line.StartsWith("gameversion"))
+                else if (line.StartsWith("GameVersion"))
                 {
                     GameVersion = line.Split('=')[1].Trim();
                 }
-                else if (line.StartsWith("downloadpath"))
+                else if (line.StartsWith("DownloadPath"))
                 {
                     DownloadPath = line.Split('=')[1].Trim();
                 }
-                else if (line.StartsWith("alwaysupdate"))
+                else if (line.StartsWith("AlwaysUpdate"))
                 {
                     if (bool.TryParse(line.Split('=')[1].Trim(), out bool alwaysUpdateValue))
                         AlwaysUpdate = alwaysUpdateValue;
                     else
                         AlwaysUpdate = true;
                 }
-                else if (line.StartsWith("candowngrade"))
+                else if (line.StartsWith("CanDowngrade"))
                 {
                     if (bool.TryParse(line.Split('=')[1].Trim(), out bool canDowngradeValue))
                         CanDowngrade = canDowngradeValue;
                     else
                         CanDowngrade = false;
+                }
+                else if (line.StartsWith("AlwaysDownload"))
+                {
+                    if (bool.TryParse(line.Split('=')[1].Trim(), out bool AlwaysDownloadValue))
+                        AlwaysDownload = AlwaysDownloadValue;
+                    else
+                        AlwaysDownload = false;
                 }
             }
         }
@@ -513,7 +546,7 @@ public class Config
             DownloadPath = Path.Combine(Directory.GetCurrentDirectory(), "Mods");
             AlwaysUpdate = true;
             CanDowngrade = false;
-
+            AlwaysDownload = false;
             SaveConfig();
         }
     }
@@ -521,12 +554,13 @@ public class Config
     public void SaveConfig()
     {
         File.WriteAllText(configPath,
-            $"[vsmd]\n" +
-            $"modpath = {ModPath}\n" +
-            $"gameversion = {GameVersion}\n" +
-            $"downloadpath = {DownloadPath}\n" +
-            $"alwaysupdate = {AlwaysUpdate}\n" +
-            $"candowngrade = {CanDowngrade}\n");
+            $"ModPath = {ModPath}\n" +
+            $"GameVersion = {GameVersion}\n" +
+            $"DownloadPath = {DownloadPath}\n" +
+            $"AlwaysUpdate = {AlwaysUpdate}\n" +
+            $"CanDowngrade = {CanDowngrade}\n" +
+            $"AlwaysDownload = {AlwaysDownload}\n"
+            );
     }
 
     private string AskDirectory(string prompt, string errorMsg)
