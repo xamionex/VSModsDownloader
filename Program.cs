@@ -151,30 +151,23 @@ class Program
                 .Replace("/", "-")
                 .Replace("\\", "-");
 
-            string fileName = fileNameBase + ".zip";
-            string outputPath = Path.Combine(config.ModPath, Path.GetFileName(fileName));
+            bool olderVer = false;
+            if (olderVersion && (config.MoveOlder ?? false)) olderVer = true;
 
-            if (olderVersion && (config.MoveOlder ?? false))
-            {
-                if (!Directory.Exists(Path.Combine(config.ModPath, oldModPathName)))
-                {
-                    Directory.CreateDirectory(Path.Combine(config.ModPath, oldModPathName));
-                }
-                outputPath = Path.Combine(config.ModPath, oldModPathName, Path.GetFileName(fileName));
-            }
+            string OutputPath = Path.Combine(config.ModPath, $"{fileNameBase}.zip");
+            if (olderVer) OutputPath = Path.Combine(config.ModPath, oldModPathName, $"{fileNameBase}.zip");
 
-            // Check for duplicates and append an index if needed
-            int duplicateCount = 1;
-            string finalOutputPath = outputPath;
-            while (File.Exists(finalOutputPath))
+            // Handle duplicates
+            int duplicateCount = 0;
+            while (File.Exists(OutputPath))
             {
-                string fileNameWithIndex = $"{Path.GetFileNameWithoutExtension(fileNameBase)} ({duplicateCount})" + Path.GetExtension(fileName);
-                finalOutputPath = Path.Combine(outputPath, fileNameWithIndex);
                 duplicateCount++;
+                OutputPath = Path.Combine(config.ModPath, $"{fileNameBase} ({duplicateCount++}).zip");
+                if (olderVer) OutputPath = Path.Combine(config.ModPath, oldModPathName, $"{fileNameBase} ({duplicateCount++}).zip");
             }
 
             // Save mod
-            await File.WriteAllBytesAsync(finalOutputPath, await response.Content.ReadAsByteArrayAsync());
+            await File.WriteAllBytesAsync(OutputPath, await response.Content.ReadAsByteArrayAsync());
             Separator();
         }
         Console.WriteLine($"Checked {CheckedMods} mods. Downloaded {DownloadedMods} mods");
