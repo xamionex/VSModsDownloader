@@ -68,14 +68,19 @@ class Program
 
     static async Task CheckForUpdatesAsync(List<Dictionary<string, object>> modInfoList)
     {
-        Separator();
         int CheckedMods = 0;
         int DownloadedMods = 0;
         using HttpClient client = new HttpClient();
         foreach (var mod in modInfoList)
         {
+            Separator();
             CheckedMods++;
-            string apiReq = modApi + "/" + mod["modid"];
+            if (!mod.TryGetValue("modid", out var modid))
+            {
+                Console.WriteLine($"Failed to find modid property in modinfo.json for {mod["name"]}");
+                continue;
+            }
+            string apiReq = modApi + "/" + modid;
             HttpResponseMessage modRes = await client.GetAsync(apiReq);
             if (!modRes.IsSuccessStatusCode)
             {
@@ -168,8 +173,8 @@ class Program
 
             // Save mod
             await File.WriteAllBytesAsync(OutputPath, await response.Content.ReadAsByteArrayAsync());
-            Separator();
         }
+        Separator();
         Console.WriteLine($"Checked {CheckedMods} mods. Downloaded {DownloadedMods} mods");
     }
 
