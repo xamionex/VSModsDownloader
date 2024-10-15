@@ -440,7 +440,7 @@ class Program
         while (true)
         {
             // Check if the application can read keys
-            if (IsConsoleAvailable())
+            try
             {
                 // Attempt to read key input
                 ConsoleKeyInfo cki = Console.ReadKey(true);
@@ -448,12 +448,8 @@ class Program
                 {
                     return option; // Return the parsed integer
                 }
-                else
-                {
-                    Console.WriteLine($"'{cki.KeyChar}' is not a valid option.");
-                }
             }
-            else
+            catch
             {
                 // Fallback to reading a line
                 string? input = Console.ReadLine();
@@ -461,26 +457,7 @@ class Program
                 {
                     return option; // Return the parsed integer
                 }
-                else
-                {
-                    Console.WriteLine($"'{input}' is not a valid option.");
-                }
             }
-        }
-    }
-
-
-    static bool IsConsoleAvailable()
-    {
-        try
-        {
-            // Try to read from the console to see if it's available
-            return Console.KeyAvailable;
-        }
-        catch (InvalidOperationException)
-        {
-            // If we catch an InvalidOperationException, then the console is not available
-            return false;
         }
     }
 }
