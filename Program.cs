@@ -608,28 +608,28 @@ public class Config
                     if (bool.TryParse(line.Split('=')[1].Trim(), out bool alwaysUpdateValue))
                         AlwaysUpdate = alwaysUpdateValue;
                     else
-                        AlwaysUpdate = true;
+                        AlwaysUpdate = false;
                 }
                 else if (line.StartsWith("CanDowngrade"))
                 {
                     if (bool.TryParse(line.Split('=')[1].Trim(), out bool canDowngradeValue))
                         CanDowngrade = canDowngradeValue;
                     else
-                        CanDowngrade = false;
+                        CanDowngrade = true;
                 }
                 else if (line.StartsWith("AlwaysDownload"))
                 {
                     if (bool.TryParse(line.Split('=')[1].Trim(), out bool AlwaysDownloadValue))
                         AlwaysDownload = AlwaysDownloadValue;
                     else
-                        AlwaysDownload = false;
+                        AlwaysDownload = true;
                 }
                 else if (line.StartsWith("MissingVersion"))
                 {
                     if (int.TryParse(line.Split('=')[1].Trim(), out int MissingVersionValue))
                         MissingVersion = MissingVersionValue;
                     else
-                        MissingVersion = 1;
+                        MissingVersion = 2;
                 }
                 else if (line.StartsWith("MoveOlder"))
                 {
@@ -642,13 +642,12 @@ public class Config
         }
         else
         {
-            // Handle config creation or re-ask for values as needed
             ModPath = "./Mods";
-            GameVersion = "0.0.0";
-            AlwaysUpdate = true;
-            CanDowngrade = false;
-            AlwaysDownload = false;
-            MissingVersion = 1;
+            GameVersion = "1.19.8";
+            AlwaysUpdate = false;
+            CanDowngrade = true;
+            AlwaysDownload = true;
+            MissingVersion = 2;
             MoveOlder = false;
             SaveConfig();
         }
