@@ -151,7 +151,7 @@ class Program
                 File.Move(mod["uniquekeyformodpath"]?.ToString() ?? string.Empty, oldOutputPath);
             }
 
-            string fileNameBase = $"{mod["modid"]} - ({mod["name"]}) - {release.GetProperty("modversion")} - {release.GetProperty("tags")[0]}"
+            string fileNameBase = $"{mod["name"]} - ({mod["modid"]}) - {release.GetProperty("modversion")} - {release.GetProperty("tags")[0]}"
                 .Replace(":", ";")
                 .Replace("/", "-")
                 .Replace("\\", "-");
