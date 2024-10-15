@@ -145,8 +145,15 @@ class Program
                 }
                 File.Move(mod["uniquekeyformodpath"]?.ToString() ?? string.Empty, oldOutputPath);
             }
-            string fileName = $"{mod["name"]} - {release.GetProperty("modversion")} - {release.GetProperty("tags")[0]}".Replace(":", ";").Replace("/", "-").Replace("\\", "-") + ".zip";
+
+            string fileNameBase = $"{mod["modid"]} - ({mod["name"]}) - {release.GetProperty("modversion")} - {release.GetProperty("tags")[0]}"
+                .Replace(":", ";")
+                .Replace("/", "-")
+                .Replace("\\", "-");
+
+            string fileName = fileNameBase + ".zip";
             string outputPath = Path.Combine(config.ModPath, Path.GetFileName(fileName));
+
             if (olderVersion && (config.MoveOlder ?? false))
             {
                 if (!Directory.Exists(Path.Combine(config.ModPath, oldModPathName)))
@@ -155,7 +162,19 @@ class Program
                 }
                 outputPath = Path.Combine(config.ModPath, oldModPathName, Path.GetFileName(fileName));
             }
-            await File.WriteAllBytesAsync(outputPath, await response.Content.ReadAsByteArrayAsync());
+
+            // Check for duplicates and append an index if needed
+            int duplicateCount = 1;
+            string finalOutputPath = outputPath;
+            while (File.Exists(finalOutputPath))
+            {
+                string fileNameWithIndex = $"{Path.GetFileNameWithoutExtension(fileNameBase)} ({duplicateCount})" + Path.GetExtension(fileName);
+                finalOutputPath = Path.Combine(outputPath, fileNameWithIndex);
+                duplicateCount++;
+            }
+
+            // Save mod
+            await File.WriteAllBytesAsync(finalOutputPath, await response.Content.ReadAsByteArrayAsync());
             Separator();
         }
         Console.WriteLine($"Checked {CheckedMods} mods. Downloaded {DownloadedMods} mods");
