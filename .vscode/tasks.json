@@ -1,0 +1,37 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build Project (Debug)",
+			"type": "process",
+			"command": "dotnet",
+			"args": ["build", "--configuration", "Debug"],
+			"problemMatcher": "$msCompile",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"detail": "Build the project in Release mode"
+		},
+		{
+			"label": "Build Project (Release)",
+			"type": "process",
+			"command": "dotnet",
+			"args": ["build", "--configuration", "Release"],
+			"problemMatcher": "$msCompile",
+			"group": {
+				"kind": "build",
+				"isDefault": false
+			},
+			"detail": "Build the project in Release mode"
+		},
+		{
+			"label": "Copy Release to Root",
+			"type": "shell",
+			"dependsOn": "Build Project (Release)",
+			"command": "cp",
+			"args": ["${workspaceFolder}/bin/Release/net8.0/VSMD.exe", "${workspaceFolder}"],
+			"problemMatcher": []
+		}
+	]
+}

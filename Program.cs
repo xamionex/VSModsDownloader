@@ -1,5 +1,4 @@
 ﻿using System.IO.Compression;
-using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -601,7 +600,7 @@ public class Config
         else
         {
             // Handle config creation or re-ask for values as needed
-            ModPath = AskDirectory("Please enter the path to your mods folder: ", "Please enter a valid path.");
+            ModPath = "./Mods";
             GameVersion = "0.0.0";
             AlwaysUpdate = true;
             CanDowngrade = false;
@@ -621,20 +620,5 @@ public class Config
             $"AlwaysDownload = {AlwaysDownload}\n" +
             $"MissingVersion = {MissingVersion}\n"
             );
-    }
-
-    private string AskDirectory(string prompt, string errorMsg)
-    {
-        string? input;
-        do
-        {
-            Console.WriteLine(prompt);
-            input = Console.ReadLine();
-            if (!Directory.Exists(input))
-            {
-                Console.WriteLine(errorMsg);
-            }
-        } while (!Directory.Exists(input));
-        return input;
     }
 }
