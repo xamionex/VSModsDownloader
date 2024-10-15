@@ -28,9 +28,17 @@
 		{
 			"label": "Copy Release to Root",
 			"type": "shell",
-			"dependsOn": "Build Project (Release)",
+			"dependsOn": "Copy DLL Release to Root",
 			"command": "cp",
 			"args": ["${workspaceFolder}/bin/Release/net8.0/VSMD.exe", "${workspaceFolder}"],
+			"problemMatcher": []
+		},
+		{
+			"label": "Copy DLL Release to Root",
+			"type": "shell",
+			"dependsOn": "Build Project (Release)",
+			"command": "cp",
+			"args": ["${workspaceFolder}/bin/Release/net8.0/VSMD.dll", "${workspaceFolder}"],
 			"problemMatcher": []
 		}
 	]
